@@ -68,6 +68,12 @@ class CheckGraylog2Alive < Sensu::Plugin::Check::CLI
          long: '--apipath /api',
          default: ''
 
+  option :https,
+         description: 'HTTPS',
+         short: '-H',
+         long: '--https',
+         default: false
+
   def run
     res = vhost_alive?
 
@@ -86,11 +92,14 @@ class CheckGraylog2Alive < Sensu::Plugin::Check::CLI
     username = config[:username]
     password = config[:password]
     apipath  = config[:apipath]
+    https    = config[:https]
 
     lifecycle_ok = ['override lb:alive', 'running']
 
     begin
-      resource = RestClient::Resource.new "http://#{host}:#{port}#{apipath}/system", username, password
+      protocol = https ? 'https' : 'http'
+      resource = RestClient::Resource.new "#{protocol}://#{host}:#{port}#{apipath}/system", { user: username, password: password, verify_ssl: false }
+
       # Attempt to parse response (just to trigger parse exception)
       response = JSON.parse(resource.get)
       status_text = "#{response['lifecycle']}/#{response['is_processing']}/#{response['lb_status']}"
